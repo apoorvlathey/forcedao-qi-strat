@@ -292,11 +292,11 @@ contract ForceDAO_QIStrat is ERC20 {
         farm.deposit(pid, underlyingReceived);
     }
 
+    // --- Public View Functions ---
+
     function pendingRewards() external view returns (uint256 amount) {
         return farm.pending(pid, address(this));
     }
-
-    // --- Public View Functions ---
 
     // total underlying tokens staked in farming contract
     function balance() public view returns (uint256) {
