@@ -74,6 +74,7 @@ function App() {
   const [account, setAccount] = useState("");
   const [inputDisabled, setInputDisabled] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [isDataFetched, setIsDataFetched] = useState(false);
 
   const [totalLpAmount, setTotalLpAmount] = useState("");
   const [totalLpAmountInBNWei, setTotalLpAmountInBNWei] = useState("");
@@ -172,10 +173,10 @@ function App() {
         .balanceOf(underlyingAddress)
         .call();
       const _totalToken0Share = new BN(reserve0)
-        .mul(userLPUnderlying)
+        .mul(totalLpAmountInBNWei)
         .div(new BN(lpTotalSupply));
       const _userToken0Share = new BN(reserve0)
-        .mul(userSharesAmountInBNWei)
+        .mul(userLPUnderlying)
         .div(new BN(lpTotalSupply));
       setTotalToken0Share(await toDecimal(qiContract, _totalToken0Share));
       setUserToken0Share(await toDecimal(qiContract, _userToken0Share));
@@ -216,8 +217,33 @@ function App() {
     return ((beforeDec + "." + afterDec) * 1).toString();
   };
 
+  const toDecimal_new = async (tokenInstance, amount, isETH) => {
+    var decimals = isETH
+      ? 18
+      : parseInt(await tokenInstance.methods.decimals().call());
+    const divisor = new BN("10").pow(new BN(decimals));
+    const beforeDec = new BN(amount).div(divisor).toString();
+    var afterDec = new BN(amount).mod(divisor).toString();
+
+    if (afterDec.length < decimals && afterDec !== "0") {
+      // pad with extra zeroes
+      const pad = Array(decimals + 1).join("0");
+      afterDec = (pad + afterDec).slice(-decimals);
+    }
+
+    // remove insignificant trailing zeros
+    return (beforeDec + "." + afterDec).replace(
+      /(\.[0-9]*[1-9])0+$|\.0*$/,
+      "$1"
+    );
+  };
+
   const numberWithCommas = (x) => {
-    return x.toString().replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",");
+    if (x) {
+      return x.toString().replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",");
+    } else {
+      return "0";
+    }
   };
 
   const fetchLpAmountAndRewards = async () => {
@@ -235,7 +261,7 @@ function App() {
       .pricePerShare()
       .call();
 
-    setTotalLpAmountInBNWei(new BN(res_user_shares_balance));
+    setTotalLpAmountInBNWei(new BN(res_total_balance));
     setTotalLpAmount(
       await toDecimal(
         null,
@@ -260,7 +286,7 @@ function App() {
       )
     );
     setUserLpBalance(
-      await toDecimal(
+      await toDecimal_new(
         null,
         res_user_lp_balance,
         true // isETH==true bcoz lp tokens also have fixed 18 decimals
@@ -366,6 +392,30 @@ function App() {
     totalToken1Share,
     userToken0Share,
     userToken1Share,
+  ]);
+
+  useEffect(() => {
+    if (
+      apy &&
+      totalLpAmount &&
+      totalToken0UsdVal &&
+      totalToken1UsdVal &&
+      totalToken0Share &&
+      totalToken0UsdVal &&
+      totalToken1Share &&
+      totalToken1UsdVal
+    ) {
+      setIsDataFetched(true);
+    }
+  }, [
+    apy,
+    totalLpAmount,
+    totalToken0UsdVal,
+    totalToken1UsdVal,
+    totalToken0Share,
+    totalToken0UsdVal,
+    totalToken1Share,
+    totalToken1UsdVal,
   ]);
 
   return (
@@ -494,7 +544,7 @@ function App() {
               </Box>
             </Grid>
           )}
-          {totalToken0UsdVal && totalToken1UsdVal && (
+          {isDataFetched && (
             <>
               <Box
                 textAlign="center"
