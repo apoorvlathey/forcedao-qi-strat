@@ -16,9 +16,35 @@ const connectWallet = async (setWeb3, setAccount) => {
   await web3Modal.clearCachedProvider();
   const provider = await web3Modal.connect();
   const web3 = new Web3(provider);
-  setWeb3(web3);
-  const accounts = await web3.eth.getAccounts();
-  setAccount(accounts[0]);
+
+  const chainID = await web3.eth.getChainId();
+  if (chainID !== 137) {
+    alert("Please Switch to Polygon Mainnet to use this DApp");
+
+    const params = {
+      chainId: "0x89",
+    };
+
+    web3.eth.getAccounts((error, accounts) => {
+      window.ethereum
+        .request({
+          method: "wallet_switchEthereumChain",
+          params: [params],
+        })
+        .then((result) => {
+          console.log(result);
+          setWeb3(web3);
+          setAccount(accounts[0]);
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+    });
+  } else {
+    setWeb3(web3);
+    const accounts = await web3.eth.getAccounts();
+    setAccount(accounts[0]);
+  }
 };
 
 const ConnectWallet = ({ setWeb3, setAccount }) => {
