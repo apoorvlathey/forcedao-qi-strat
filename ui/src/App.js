@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import {
-  Tabs,
-  Tab,
   Grid,
   LinearProgress,
   Paper,
@@ -872,7 +870,7 @@ function App() {
                   }}
                   helperText="Underlying Farm deducts 0.5% as Deposit Fee"
                   autoComplete="off"
-                  value={toDepositAmount}
+                  value={toDepositAmount || ""}
                   type="number"
                   onChange={(e) => setToDepositAmount(e.target.value)}
                 />
@@ -931,7 +929,7 @@ function App() {
                     shrink: true,
                   }}
                   autoComplete="off"
-                  value={maiToDeposit}
+                  value={maiToDeposit || ""}
                   type="number"
                   onChange={(e) => setMaiToDeposit(e.target.value)}
                 />
@@ -990,7 +988,7 @@ function App() {
                     shrink: true,
                   }}
                   autoComplete="off"
-                  value={toWithdrawAmount}
+                  value={toWithdrawAmount || ""}
                   type="number"
                   onChange={(e) => setToWithdrawAmount(e.target.value)}
                 />
