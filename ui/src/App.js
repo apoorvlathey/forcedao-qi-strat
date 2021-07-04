@@ -134,8 +134,8 @@ function App() {
 
       setPrices(res);
 
-      setMaiUsdVal(parseFloat(res[0].toFixed(2)));
-      setQiUsdVal(parseFloat(res[1].toFixed(2)));
+      setQiUsdVal(parseFloat(res[0].toFixed(2)));
+      setMaiUsdVal(parseFloat(res[1].toFixed(2)));
 
       setLoading(false);
     } catch (error) {
