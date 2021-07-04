@@ -145,12 +145,12 @@ contract ForceDAO_QIStrat is ERC20 {
 
     // ! the underlying farm has 0.5% deposit fees
     function deposit(uint256 amountIn) external {
-        uint256 _pool = balance();
-        _deposit(_pool, amountIn, true);
+        uint256 _preBalance = balance();
+        _deposit(_preBalance, amountIn, true);
     }
 
     function _deposit(
-        uint256 _pool,
+        uint256 _preBalance,
         uint256 amountIn,
         bool shouldTransferFrom
     ) internal {
@@ -162,13 +162,15 @@ contract ForceDAO_QIStrat is ERC20 {
         // stake into farm
         underlying.safeApprove(address(farm), amountIn);
         farm.deposit(pid, amountIn);
+        // effective amount deposited (after pool's 0.5% fee)
+        uint256 amtDeposited = balance() - _preBalance;
 
         // mint shares for user
         uint256 shares = 0;
         if (totalSupply() == 0) {
-            shares = amountIn;
+            shares = amtDeposited;
         } else {
-            shares = (amountIn * totalSupply()) / _pool;
+            shares = (amtDeposited * totalSupply()) / _preBalance;
         }
         _mint(msg.sender, shares);
 
