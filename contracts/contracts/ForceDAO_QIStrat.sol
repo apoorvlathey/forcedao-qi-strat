@@ -182,6 +182,8 @@ contract ForceDAO_QIStrat is ERC20 {
 
         // get MAI from user
         IERC20(MAI).safeTransferFrom(msg.sender, address(this), maiAmountIn);
+        // consume any dust MAI left in contract
+        maiAmountIn = IERC20(MAI).balanceOf(address(this));
 
         /// --- get `underlying` LP ---
         // get amount to swap
@@ -205,7 +207,7 @@ contract ForceDAO_QIStrat is ERC20 {
             block.timestamp
         )[path.length - 1];
 
-        // add QI and MAI to Sushiswap Pool, get underlying
+        // add QI and MAI to Quickswap Pool, get underlying
         // MAI already approved above, so just approveing QI here
         IERC20(QI).safeApprove(address(quickswapRouter), 0);
         IERC20(QI).safeApprove(address(quickswapRouter), qiReceived);
@@ -245,7 +247,7 @@ contract ForceDAO_QIStrat is ERC20 {
 
     // 1. claim QI reward
     // 2. swap some QI to MAI
-    // 3. Add QI+MAI to Sushiswap Pool, get underlying
+    // 3. Add QI+MAI to Quickswap Pool, get underlying
     // 4. Stake underlying back into farm
     function harvest() external {
         // claim rewards
@@ -273,15 +275,15 @@ contract ForceDAO_QIStrat is ERC20 {
             block.timestamp
         )[path.length - 1];
 
-        // add QI and MAI to Sushiswap Pool, get underlying
+        // add QI and MAI to Quickswap Pool, get underlying
         // QI already approved above, so just approveing MAI here
         IERC20(MAI).safeApprove(address(quickswapRouter), 0);
         IERC20(MAI).safeApprove(address(quickswapRouter), maiReceived);
         quickswapRouter.addLiquidity(
             QI,
             MAI,
-            maiReceived,
             QIBalance - QIAmountToSwap,
+            maiReceived,
             1,
             1,
             address(this),
@@ -292,6 +294,8 @@ contract ForceDAO_QIStrat is ERC20 {
         uint256 underlyingReceived = underlying.balanceOf(address(this));
         underlying.safeApprove(address(farm), underlyingReceived);
         farm.deposit(pid, underlyingReceived);
+
+        _emitPricePerShare();
     }
 
     // --- Public View Functions ---
