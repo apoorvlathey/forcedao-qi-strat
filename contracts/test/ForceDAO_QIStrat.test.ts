@@ -23,9 +23,11 @@ describe("QI Strategy", () => {
   let strategy: ForceDAOQIStrat;
   let underlyingLP: IERC20;
   let mai: IERC20;
+  let qi: IERC20;
 
   const underlyingLPAddress = "0x7AfcF11F3e2f01e71B7Cc6b8B5e707E42e6Ea397";
   const maiAddress = "0xa3Fa99A148fA48D14Ed51d610c367C61876997F1";
+  const qiAddress = "0x580A84C73811E1839F75d86d75d88cCa0c241fF4";
 
   // whate address with underyling and mai tokens for test
   const whaleAddress = "0x86fE8d6D4C8A007353617587988552B6921514Cb";
@@ -49,6 +51,7 @@ describe("QI Strategy", () => {
       underlyingLPAddress
     )) as IERC20;
     mai = (await ethers.getContractAt("IERC20", maiAddress)) as IERC20;
+    qi = (await ethers.getContractAt("IERC20", qiAddress)) as IERC20;
 
     // impersonate whale
     await network.provider.request({
@@ -98,6 +101,27 @@ describe("QI Strategy", () => {
     expect(await strategy.balance()).to.be.gt(preStrategyBalance);
   });
 
+  it("should `deposit` into strategy with just QI", async () => {
+    const qiBalance = await qi.balanceOf(whaleAddress);
+
+    // approve
+    await qi.connect(whale).approve(strategy.address, qiBalance);
+
+    const preWhaleSharesBalance = await strategy.balanceOf(whaleAddress);
+    const preStrategyBalance = await strategy.balance();
+
+    // deposit
+    await expect(strategy.connect(whale).depositWithQI(qiBalance)).to.emit(
+      strategy,
+      "PricePerShareLog"
+    );
+
+    expect(await strategy.balanceOf(whaleAddress)).to.be.gt(
+      preWhaleSharesBalance
+    );
+    expect(await strategy.balance()).to.be.gt(preStrategyBalance);
+  });
+
   it("should `harvest` rewards", async () => {
     // increase blocks by roughly 1 hr
     const iniBlock = await time.latestBlock();
@@ -105,7 +129,10 @@ describe("QI Strategy", () => {
 
     const prePricePerShare = await strategy.pricePerShare();
 
-    await strategy.connect(whale).harvest();
+    await expect(strategy.connect(whale).harvest()).to.emit(
+      strategy,
+      "PricePerShareLog"
+    );
 
     expect(await strategy.pricePerShare()).to.be.gt(prePricePerShare);
   });

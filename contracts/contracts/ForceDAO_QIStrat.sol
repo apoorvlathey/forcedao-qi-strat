@@ -227,6 +227,54 @@ contract ForceDAO_QIStrat is ERC20 {
         _deposit(_pool, underlyingReceived, false);
     }
 
+    function depositWithQI(uint256 qiAmountIn) external {
+        uint256 _pool = balance();
+
+        // get QI from user
+        IERC20(QI).safeTransferFrom(msg.sender, address(this), qiAmountIn);
+
+        /// --- get `underlying` LP ---
+        // get amount to swap
+        (uint256 res0, , ) = IUniswapV2Pair(address(underlying)).getReserves();
+        // token0: QI
+        // token1: MAI
+        uint256 qiAmountToSwap = calculateSwapInAmount(res0, qiAmountIn);
+
+        // swap required QI to MAI
+        address[] memory path = new address[](2);
+        path[0] = QI;
+        path[1] = MAI;
+
+        IERC20(QI).safeApprove(address(quickswapRouter), 0);
+        IERC20(QI).safeApprove(address(quickswapRouter), qiAmountIn);
+        uint256 maiReceived = quickswapRouter.swapExactTokensForTokens(
+            qiAmountToSwap,
+            1,
+            path,
+            address(this),
+            block.timestamp
+        )[path.length - 1];
+
+        // add QI and MAI to Quickswap Pool, get underlying
+        // QI already approved above, so just approveing MAI here
+        IERC20(MAI).safeApprove(address(quickswapRouter), 0);
+        IERC20(MAI).safeApprove(address(quickswapRouter), maiReceived);
+        quickswapRouter.addLiquidity(
+            QI,
+            MAI,
+            qiAmountIn - qiAmountToSwap,
+            maiReceived,
+            1,
+            1,
+            address(this),
+            block.timestamp
+        );
+        uint256 underlyingReceived = underlying.balanceOf(address(this));
+
+        // stake and mint shares for user
+        _deposit(_pool, underlyingReceived, false);
+    }
+
     function withdraw(uint256 shares) external {
         _emitPricePerShare();
 
