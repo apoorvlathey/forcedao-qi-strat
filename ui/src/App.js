@@ -201,38 +201,15 @@ function App() {
     var decimals = isETH
       ? 18
       : parseInt(await tokenInstance.methods.decimals().call());
-    const divisor = new BN("10").pow(new BN(decimals));
-    const beforeDec = new BN(amount).div(divisor).toString();
-    var afterDec = new BN(amount).mod(divisor).toString();
 
-    if (afterDec.length < decimals && afterDec !== "0") {
-      // pad with extra zeroes
-      const pad = Array(decimals + 1).join("0");
-      afterDec = (pad + afterDec).slice(-decimals);
+    let amountInString = amount.toString();
+    if (amountInString.length <= decimals) {
+      const pad = Array(decimals + 1 - amountInString.length + 1).join("0");
+      amountInString = pad + amountInString;
     }
 
-    // remove insignificant trailing zeros
-    return ((beforeDec + "." + afterDec) * 1).toString();
-  };
-
-  const toDecimal_new = async (tokenInstance, amount, isETH) => {
-    var decimals = isETH
-      ? 18
-      : parseInt(await tokenInstance.methods.decimals().call());
-    const divisor = new BN("10").pow(new BN(decimals));
-    const beforeDec = new BN(amount).div(divisor).toString();
-    var afterDec = new BN(amount).mod(divisor).toString();
-
-    if (afterDec.length < decimals && afterDec !== "0") {
-      // pad with extra zeroes
-      const pad = Array(decimals + 1).join("0");
-      afterDec = (pad + afterDec).slice(-decimals);
-    }
-
-    // remove insignificant trailing zeros
-    return (beforeDec + "." + afterDec).replace(
-      /(\.[0-9]*[1-9])0+$|\.0*$/,
-      "$1"
+    return (
+      amountInString.slice(0, -decimals) + "." + amountInString.slice(-decimals)
     );
   };
 
@@ -284,7 +261,7 @@ function App() {
       )
     );
     setUserLpBalance(
-      await toDecimal_new(
+      await toDecimal(
         null,
         res_user_lp_balance,
         true // isETH==true bcoz lp tokens also have fixed 18 decimals
@@ -361,6 +338,10 @@ function App() {
       userSharesAmountInBNWei &&
       pricePerShareInBNWei
     ) {
+      console.log({
+        userSharesAmountInBNWei: userSharesAmountInBNWei.toString(),
+      });
+      console.log({ userSharesAmount: userSharesAmount });
       calculate();
     }
   }, [totalLpAmountInBNWei, userSharesAmountInBNWei, pricePerShareInBNWei]);
