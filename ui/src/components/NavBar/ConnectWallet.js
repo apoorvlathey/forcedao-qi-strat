@@ -32,7 +32,6 @@ const connectWallet = async (setWeb3, setAccount) => {
           params: [params],
         })
         .then((result) => {
-          console.log(result);
           setWeb3(web3);
           setAccount(accounts[0]);
         })
