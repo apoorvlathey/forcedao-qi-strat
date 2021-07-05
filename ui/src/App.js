@@ -122,7 +122,8 @@ function App() {
   const underlyingAddress = "0x7AfcF11F3e2f01e71B7Cc6b8B5e707E42e6Ea397";
 
   const stratAddress = stratDeployedInfo.address;
-  const deployedAtTimestamp = +new Date("Jul-05-2021 05:25:46 AM UTC");
+  const deployedAtTimestamp =
+    parseInt(+new Date("Jul-05-2021 05:25:46 AM UTC")) / 1000;
 
   const UINT256MAX =
     "115792089237316195423570985008687907853269984665640564039457584007913129639935";
