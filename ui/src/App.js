@@ -17,7 +17,7 @@ import ConnectWallet from "./components/ConnectWallet";
 // ABIs
 const uniPairABI = require("./abis/UniswapPair.json");
 const tokenABI = require("./abis/ERC20.json");
-const stratABI = require("./abis/ForceDAO_QIStrat.json");
+const stratDeployedInfo = require("./abis/ForceDAO_QIStrat.json");
 // BN
 const { BN, toWei } = require("web3-utils");
 
@@ -89,10 +89,17 @@ function App() {
   const [userToken1UsdVal, setUserToken1UsdVal] = useState(0);
   const [userLpBalance, setUserLpBalance] = useState(0);
   const [userMaiBalance, setUserMaiBalance] = useState(0);
+  const [userQiBalance, setUserQiBalance] = useState(0);
   const [maiToDeposit, setMaiToDeposit] = useState(0);
+  const [qiToDeposit, setQiToDeposit] = useState(0);
 
   const [toDepositAmount, setToDepositAmount] = useState();
   const [toWithdrawAmount, setToWithdrawAmount] = useState();
+  const [showPleaseApprove, setShowPleaseApprove] = useState([
+    false,
+    false,
+    false,
+  ]);
 
   const [qiUsdVal, setQiUsdVal] = useState(0);
   const [maiUsdVal, setMaiUsdVal] = useState(0);
@@ -114,8 +121,11 @@ function App() {
 
   const underlyingAddress = "0x7AfcF11F3e2f01e71B7Cc6b8B5e707E42e6Ea397";
 
-  const stratAddress = "0xfBb07FdC7a566Faa7254c3eD8CAe8Ab00285526B";
-  const deployedAtTimestamp = 1625378950;
+  const stratAddress = stratDeployedInfo.address;
+  const deployedAtTimestamp = +new Date("Jul-05-2021 05:25:46 AM UTC");
+
+  const UINT256MAX =
+    "115792089237316195423570985008687907853269984665640564039457584007913129639935";
 
   const fetchPrices = async () => {
     setLoading(true);
@@ -222,6 +232,7 @@ function App() {
   };
 
   const fetchLpAmountAndRewards = async () => {
+    setLoading(true);
     const res_total_balance = await stratContract.methods.balance().call();
     const res_user_shares_balance = await stratContract.methods
       .balanceOf(account)
@@ -230,6 +241,9 @@ function App() {
       .balanceOf(account)
       .call();
     const res_user_mai_balance = await maiContract.methods
+      .balanceOf(account)
+      .call();
+    const res_user_qi_balance = await qiContract.methods
       .balanceOf(account)
       .call();
     const res_pricePerShare = await stratContract.methods
@@ -274,6 +288,13 @@ function App() {
         true // isETH==true bcoz MAI tokens also have fixed 18 decimals
       )
     );
+    setUserQiBalance(
+      await toDecimal(
+        null,
+        res_user_qi_balance,
+        true // isETH==true bcoz QI tokens also have fixed 18 decimals
+      )
+    );
 
     // APY calculations
     const initialPricePerShare = new BN(toWei("1"));
@@ -294,15 +315,21 @@ function App() {
     setApy(gainPercentagePerYear);
 
     const rewards = await stratContract.methods.pendingRewards().call();
+    // some QI tokens might be lying in strategy contract because of other users depositing/withdrawing
+    const stratQiBalance = await qiContract.methods
+      .balanceOf(stratAddress)
+      .call();
     const rewardsWithDecimals = await toDecimal(
       null,
-      rewards,
+      new BN(rewards).add(new BN(stratQiBalance)),
       true // isETH==true bcoz QI has 18 decimals
     );
     setPendingRewards(rewardsWithDecimals);
     setPendingRewardsUsd(
       parseFloat((prices[1] * rewardsWithDecimals).toFixed(2))
     );
+
+    setLoading(false);
   };
 
   const refresh = () => {
@@ -316,13 +343,17 @@ function App() {
 
   useEffect(() => {
     if (web3) {
+      setLoading(true);
       setInputDisabled(false);
-      setStratContract(new web3.eth.Contract(stratABI, stratAddress));
+      setStratContract(
+        new web3.eth.Contract(stratDeployedInfo.abi, stratAddress)
+      );
       setQiContract(new web3.eth.Contract(tokenABI, qiAddress));
       setMaiContract(new web3.eth.Contract(tokenABI, maiAddress));
       setUnderlyingContract(
         new web3.eth.Contract(uniPairABI, underlyingAddress)
       );
+      setLoading(false);
     }
   }, [web3]);
 
@@ -338,10 +369,6 @@ function App() {
       userSharesAmountInBNWei &&
       pricePerShareInBNWei
     ) {
-      console.log({
-        userSharesAmountInBNWei: userSharesAmountInBNWei.toString(),
-      });
-      console.log({ userSharesAmount: userSharesAmount });
       calculate();
     }
   }, [totalLpAmountInBNWei, userSharesAmountInBNWei, pricePerShareInBNWei]);
@@ -375,14 +402,14 @@ function App() {
 
   useEffect(() => {
     if (
-      apy &&
-      totalLpAmount &&
-      totalToken0UsdVal &&
-      totalToken1UsdVal &&
-      totalToken0Share &&
-      totalToken0UsdVal &&
-      totalToken1Share &&
-      totalToken1UsdVal
+      apy !== undefined &&
+      totalLpAmount !== undefined &&
+      totalToken0UsdVal !== undefined &&
+      totalToken1UsdVal !== undefined &&
+      totalToken0Share !== undefined &&
+      totalToken0UsdVal !== undefined &&
+      totalToken1Share !== undefined &&
+      totalToken1UsdVal !== undefined
     ) {
       setIsDataFetched(true);
     }
@@ -548,7 +575,15 @@ function App() {
               </Box>
 
               <Box textAlign="center" fontFamily="Monospace" fontSize={20}>
-                ⚠ Strategy has not been audited, use at your own risk
+                ⚠{" "}
+                <Link
+                  target="_blank"
+                  rel="​noopener"
+                  href="https://polygonscan.com/address/0x58669592a954eF6426782FE71BceaA5649624e69"
+                >
+                  Strategy
+                </Link>{" "}
+                has not been audited, use at your own risk
               </Box>
 
               <Divider style={{ width: "100%" }} />
@@ -869,6 +904,25 @@ function App() {
                     maxWidth: "200px",
                   }}
                   onClick={async () => {
+                    const allowance = await underlyingContract.methods
+                      .allowance(account, stratAddress)
+                      .call();
+                    if (
+                      new BN(allowance).lte(toWei(toDepositAmount.toString()))
+                    ) {
+                      let newArr = [...showPleaseApprove];
+                      newArr[0] = true;
+                      setShowPleaseApprove(newArr);
+                      await underlyingContract.methods
+                        .approve(stratAddress, UINT256MAX)
+                        .send({
+                          from: account,
+                          gasPrice: "2000000000",
+                        });
+                      newArr = [...showPleaseApprove];
+                      newArr[0] = false;
+                      setShowPleaseApprove(newArr);
+                    }
                     await stratContract.methods
                       .deposit(toWei(toDepositAmount.toString()))
                       .send({
@@ -883,6 +937,18 @@ function App() {
                   Deposit LP
                 </Button>
               </Grid>
+              <Grid item>
+                {showPleaseApprove[0] && (
+                  <Box
+                    textAlign="left"
+                    fontWeight="fontWeightMedium"
+                    fontFamily="fontFamily"
+                    color="darkorange"
+                  >
+                    Please confirm token approval...
+                  </Box>
+                )}
+              </Grid>
 
               <Grid item>
                 <Box
@@ -890,6 +956,7 @@ function App() {
                   fontWeight="fontWeightMedium"
                   fontFamily="fontFamily"
                   color="#807474"
+                  paddingTop="0.5rem"
                 >
                   Your MAI Balance:{" "}
                   <Link
@@ -913,6 +980,7 @@ function App() {
                   InputLabelProps={{
                     shrink: true,
                   }}
+                  helperText="Underlying Farm deducts 0.5% as Deposit Fee"
                   autoComplete="off"
                   value={maiToDeposit || ""}
                   type="number"
@@ -928,6 +996,23 @@ function App() {
                     maxWidth: "200px",
                   }}
                   onClick={async () => {
+                    const allowance = await maiContract.methods
+                      .allowance(account, stratAddress)
+                      .call();
+                    if (new BN(allowance).lte(toWei(maiToDeposit.toString()))) {
+                      let newArr = [...showPleaseApprove];
+                      newArr[1] = true;
+                      setShowPleaseApprove(newArr);
+                      await maiContract.methods
+                        .approve(stratAddress, UINT256MAX)
+                        .send({
+                          from: account,
+                          gasPrice: "2000000000",
+                        });
+                      newArr = [...showPleaseApprove];
+                      newArr[1] = false;
+                      setShowPleaseApprove(newArr);
+                    }
                     await stratContract.methods
                       .depositWithMAI(toWei(maiToDeposit.toString()))
                       .send({
@@ -942,6 +1027,18 @@ function App() {
                   Deposit MAI
                 </Button>
               </Grid>
+              <Grid item>
+                {showPleaseApprove[1] && (
+                  <Box
+                    textAlign="left"
+                    fontWeight="fontWeightMedium"
+                    fontFamily="fontFamily"
+                    color="darkorange"
+                  >
+                    Please confirm token approval...
+                  </Box>
+                )}
+              </Grid>
 
               <Grid item>
                 <Box
@@ -949,6 +1046,97 @@ function App() {
                   fontWeight="fontWeightMedium"
                   fontFamily="fontFamily"
                   color="#807474"
+                  paddingTop="0.5rem"
+                >
+                  Your QI Balance:{" "}
+                  <Link
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setQiToDeposit(userQiBalance);
+                    }}
+                  >
+                    {userQiBalance}
+                  </Link>
+                </Box>
+                <TextField
+                  id="to-deposit-qi-amount"
+                  label="QI Amount to Deposit"
+                  variant="outlined"
+                  style={{
+                    marginTop: "1rem",
+                    minWidth: "450px",
+                  }}
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                  helperText="Underlying Farm deducts 0.5% as Deposit Fee"
+                  autoComplete="off"
+                  value={qiToDeposit || ""}
+                  type="number"
+                  onChange={(e) => setQiToDeposit(e.target.value)}
+                />
+              </Grid>
+              <Grid item>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  style={{
+                    minHeight: "55px",
+                    maxWidth: "200px",
+                  }}
+                  onClick={async () => {
+                    const allowance = await qiContract.methods
+                      .allowance(account, stratAddress)
+                      .call();
+                    if (new BN(allowance).lte(toWei(qiToDeposit.toString()))) {
+                      let newArr = [...showPleaseApprove];
+                      newArr[2] = true;
+                      setShowPleaseApprove(newArr);
+                      await qiContract.methods
+                        .approve(stratAddress, UINT256MAX)
+                        .send({
+                          from: account,
+                          gasPrice: "2000000000",
+                        });
+                      newArr = [...showPleaseApprove];
+                      newArr[2] = false;
+                      setShowPleaseApprove(newArr);
+                    }
+                    await stratContract.methods
+                      .depositWithQI(toWei(qiToDeposit.toString()))
+                      .send({
+                        from: account,
+                        gasLimit: "550000",
+                        gasPrice: "2000000000",
+                      });
+
+                    refresh();
+                  }}
+                >
+                  Deposit QI
+                </Button>
+              </Grid>
+              <Grid item>
+                {showPleaseApprove[2] && (
+                  <Box
+                    textAlign="left"
+                    fontWeight="fontWeightMedium"
+                    fontFamily="fontFamily"
+                    color="darkorange"
+                  >
+                    Please confirm token approval...
+                  </Box>
+                )}
+              </Grid>
+
+              <Grid item>
+                <Box
+                  textAlign="left"
+                  fontWeight="fontWeightMedium"
+                  fontFamily="fontFamily"
+                  color="#807474"
+                  paddingTop="0.5rem"
                 >
                   Your Strategy Shares Balance:{" "}
                   <Link
@@ -991,7 +1179,7 @@ function App() {
                       .withdraw(toWei(toWithdrawAmount.toString()))
                       .send({
                         from: account,
-                        gasLimit: "150000",
+                        gasLimit: "350000",
                         gasPrice: "2000000000",
                       });
 
