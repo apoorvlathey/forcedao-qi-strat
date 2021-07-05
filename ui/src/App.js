@@ -566,6 +566,10 @@ function App() {
                 APY: {numberWithCommas(parseFloat(apy))}%
               </Box>
 
+              <Box textAlign="center" fontFamily="Monospace" fontSize={20}>
+                ⚠ Strategy has not been audited, use at your own risk
+              </Box>
+
               <Divider style={{ width: "100%" }} />
 
               <Grid item>
@@ -724,7 +728,7 @@ function App() {
                         refresh();
                       }}
                     >
-                      Harvest!
+                      👨‍🌾 Harvest 🔁
                     </Button>
                   </Box>
                 </Grid>
