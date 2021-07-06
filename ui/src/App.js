@@ -262,7 +262,7 @@ function App() {
     );
     setPendingRewards(rewardsWithDecimals);
     setPendingRewardsUsd(
-      parseFloat((prices[1] * rewardsWithDecimals).toFixed(2))
+      parseFloat((prices[0] * rewardsWithDecimals).toFixed(2))
     );
 
     setLoading(false);
