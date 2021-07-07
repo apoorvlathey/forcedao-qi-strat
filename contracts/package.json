@@ -9,12 +9,20 @@
     "deploy:default": "hardhat deploy",
     "deploy:polygon": "hardhat deploy --network polygon",
     "test": "hardhat test",
-    "etherscan-verify:polygon": "hardhat --network polygon etherscan-verify"
+    "etherscan-verify:polygon": "hardhat --network polygon etherscan-verify",
+    "thegraph:create": "graph create codinmaster/qi-farming-strategy --node https://api.thegraph.com/deploy/",
+    "thegraph:create-local": "graph create codinmaster/qi-farming-strategy --node http://127.0.0.1:8020",
+    "thegraph:codegen": "graph codegen",
+    "thegraph:build": "graph build",
+    "thegraph:deploy": "graph deploy codinmaster/qi-farming-strategy --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/",
+    "thegraph:deploy-local": "graph deploy codinmaster/qi-farming-strategy --ipfs http://localhost:5001 --node http://127.0.0.1:8020"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.2.0"
   },
   "devDependencies": {
+    "@graphprotocol/graph-cli": "^0.20.1",
+    "@graphprotocol/graph-ts": "^0.20.1",
     "@nomiclabs/hardhat-ethers": "^2.0.2",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "@typechain/ethers-v5": "^7.0.1",

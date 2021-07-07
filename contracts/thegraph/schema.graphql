@@ -1,0 +1,4 @@
+type PricePerShare @entity {
+  id: ID!
+  price: BigInt!
+}
